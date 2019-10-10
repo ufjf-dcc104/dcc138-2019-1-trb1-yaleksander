@@ -1,0 +1,459 @@
+<!doctype html>
+<head>
+	<meta charset="utf-8">
+	<title>Space Invaders</title>
+</head>
+<body>
+	<h1>Space Invaders</h1>
+	<canvas id="mainCanvas" width="900" height="600" style="cursor:none;"></canvas>
+	<script>
+
+// Link dos slides da aula
+// https://docs.google.com/presentation/d/1VuWoSq1oq-gKZf49qdEvAHslpnfc59i2fck8p_gI6No/edit#slide=id.ge14d23980_0_0
+
+// Declaração de classes
+class InvaderGrid
+{
+	constructor(phase)
+	{
+		this.x       =  20;
+		this.y       =  20;
+		this.dir     =   1;
+		this.limit   = 600;
+		this.w       =  16;
+		this.h       =   8;
+		this.pad     =   8;
+		this.vSpeed  =   2;
+		this.rows    =   6;
+		this.cols    =   8;
+		this.dir     =   1;
+		this.turn    = false;
+		this.invader = [];
+		for (var i = 0; i < this.rows * this.cols; i++)
+			this.invader[i] = new Invader(this.w, this.h);
+		switch (phase)
+		{
+			case 1:
+				this.createInvaderRow(2, 2);
+				break;
+			case 2:
+				this.createInvaderRow(1, 3);
+				break;
+			case 3:
+				this.createInvaderRow(0, 2);
+				break;
+			default:
+				this.createInvaderRow(this.rows, 0);
+		}
+	}
+
+	move()
+	{
+		if (this.turn)
+		{
+			this.dir *= -1;
+			for (var i = 0; i < this.invader.length; i++)
+				this.invader[i].moveY(this.vSpeed);
+			this.turn = false;
+		}
+		var speed = this.getSpeed();
+		for (var i = 0; i < this.invader.length; i++)
+		{
+			this.invader[i].move(speed, this.dir);
+			if (this.invader[i].hitWall())
+				this.turn = true;
+		}
+	}
+
+	createInvaderRow(lv1, lv2)
+	{
+		for (var i = 0; i < this.invader.length; i++)
+		{
+			var x = this.x + (this.w + this.pad) * Math.floor(i % this.cols);
+			var y = this.y + (this.h + this.pad) * Math.floor(i / this.cols);
+			if (this.rows * this.cols - i > (lv1 + lv2) * this.cols)
+				this.invader[i].set(3, x, y);
+			else if (this.rows * this.cols - i > lv1 * this.cols)
+				this.invader[i].set(2, x, y);
+			else
+				this.invader[i].set(1, x, y);
+		}
+	}
+
+	getSpeed()
+	{
+		var lowest = this.invader[0].speed;
+		for (var i = 1; i < this.invader.length; i++)
+			if (this.invader[i].speed < lowest)
+				lowest = this.invader[i].getSpeed();
+		return lowest;
+	}
+
+	collideAll()
+	{
+		for (var i = 0; i < projectiles.length; i++)
+		{
+			if (projectiles[i].isFriendly())
+			{
+				for (var j = 0; j < this.invader.length; j++)
+				{
+					if (collide(projectiles[i], this.invader[j]))
+					{
+						this.invader.splice(j--, 1);
+						projectiles[i].kill();
+						if (this.invader.length == 0)
+							win = true;
+					}
+				}
+			}
+		}
+	}
+
+	alive(lv)
+	{
+		for (var i = 0; i < this.invader.length; i++)
+			if (invader[i].sprite == lv - 1)
+				return true;
+		return false;
+	}
+
+	updateAll()
+	{
+		for (var i = 0; i < this.invader.length; i++)
+		{
+			if (!invader[i].isAlive())
+			{
+				invader.splice(i, 1);
+				i = 0;
+			}
+		}
+	}
+
+	shoot()
+	{
+		// TODO
+	}
+
+	draw()
+	{
+		for (var i = 0; i < this.invader.length; i++)
+			this.invader[i].draw();
+	}
+}
+
+class Invader
+{
+	constructor(w, h)
+	{
+		this.w = w;
+		this.h = h;
+	}
+
+	move(speed, dir)
+	{
+		this.x += speed * 0.5 * dir;
+	}
+
+	moveY(speed)
+	{
+		this.y += speed;
+	}
+
+	set(lv, x, y)
+	{
+		this.x      = x;
+		this.y      = y;
+		this.alive  = 1;
+		this.sprite = lv - 1;
+		if (lv == 1)
+			this.speed = 1.5;
+		else if (lv == 2)
+			this.speed = 2.4;
+		else if (lv == 3)
+			this.speed = 3.3;
+	}
+
+	getSpeed()
+	{
+		if (this.alive)
+			return this.speed;
+		else
+			return 0;
+	}
+
+	hitWall()
+	{
+		if (this.x < wallA || this.x + this.w > wallB)
+			return true;
+		return false;
+	}
+
+	draw()
+	{
+		ctx.drawImage(invaderSprite, 12 * this.sprite, 8 * animFrame, 12, 8, this.x, this.y, 12, 8);
+	}
+}
+
+class Projectile
+{
+	constructor(x, y, friendly)
+	{
+		this.x          = x;
+		this.y          = y;
+		this.w          = 2;
+		this.h          = 6;
+		this.friendly   = friendly;
+		this.speed      = 3.0;
+		this.markDelete = false;
+	}
+
+	move()
+	{
+		this.y += this.speed * (this.isFriendly() ? -1 : 1);
+		if (this.y < -20 || this.y > limitY)
+			this.kill();
+	}
+
+	kill()
+	{
+		this.markDelete = true;
+	}
+
+	shouldDelete()
+	{
+		return this.markDelete;
+	}
+
+	isFriendly()
+	{
+		return this.friendly;
+	}
+
+	getX()
+	{
+		return this.x;
+	}
+
+	getY()
+	{
+		return this.y;
+	}
+
+	getW()
+	{
+		return this.w;
+	}
+
+	getH()
+	{
+		return this.h;
+	}
+}
+
+class Player
+{
+	constructor()
+	{
+		this.canMove = true;
+		this.x       =  50;
+		this.y       = 180;
+		this.w       =  20;
+		this.h       =  20;
+		this.speed   =   2;
+	}
+
+	disableMovement()
+	{
+		this.canMove = false;
+	}
+
+	enableMovement()
+	{
+		this.canMove = true;
+	}
+
+	move()
+	{
+		if (this.canMove)
+		{
+			if (teclaEsquerda && !teclaDireita)
+			{
+				if (this.x - this.speed > 0)
+					this.x -= this.speed;
+				else
+					this.x = 0;
+			}
+			else if (!teclaEsquerda && teclaDireita)
+			{
+				if (this.x + this.speed + this.w < wallB)
+					this.x += this.speed;
+				else
+					this.x = wallB - this.w;
+			}
+		}
+	}
+}
+
+// Declaração de funções
+function collide(a, b)
+{
+	if (a.x + a.w < b.x)
+		return false;
+	if (a.x > b.x + b.w)
+		return false;
+	if (a.y + a.h < b.y)
+		return false;
+	if (a.y > b.y + b.h)
+		return false;
+	return true;
+}
+
+function update(progress)
+{
+	if (!win && !lose)
+	{
+		player.move();
+		invaders.move();
+		invaders.shoot();
+		invaders.collideAll();
+		if (cooldownCount < cooldown)
+			cooldownCount += progress;
+		if (teclaEspaco && cooldownCount >= cooldown)
+		{
+			projectiles.push(new Projectile(player.x + 7, player.y, true));
+			cooldownCount = 0;
+		}
+		for (var i = 0; i < projectiles.length; i++)
+		{
+			if (projectiles[i].shouldDelete())
+				projectiles.splice(i--, 1);
+			else
+				projectiles[i].move();
+		}
+	}
+}
+
+function draw()
+{
+	if (!win && !lose)
+	{
+		// Fundo
+		ctx.fillStyle = "gray";
+		ctx.fillRect(0, 0, 1920, 1080);
+
+		// Personagem
+		ctx.fillStyle = "blue";
+		ctx.drawImage(playerSprite, 0, 0, player.w, player.h, player.x, player.y, player.w, player.h);
+
+		// Invasores
+		invaders.draw();
+
+		// Projéteis
+		for (var i = 0; i < projectiles.length; i++)
+		{
+			if (projectiles[i].isFriendly())
+				ctx.fillStyle = "#00ff00";
+			else
+				ctx.fillStyle = "red";
+			ctx.fillRect(projectiles[i].getX(), projectiles[i].getY(), projectiles[i].getW(), projectiles[i].getH());
+		}
+	}
+	else if (win)
+	{
+		// Fundo
+		ctx.fillStyle = "gray";
+		ctx.fillRect(0, 0, 1920, 1080);
+
+		// Mensagem de vitória
+		ctx.font = "24px Arial";
+		ctx.textAlign = "center";
+		ctx.fillStyle = animFrame ? "red" : "purple";
+		ctx.fillText("Você venceu!", canvas.width / (scale * 2), canvas.height / (scale * 2));
+	}
+}
+
+function loop(timestamp)
+{
+	var progress = timestamp - lastRender;
+	update(progress);
+	currProgress += progress;
+	if (currProgress > animShift)
+	{
+		animFrame++;
+		animFrame   %= 2;
+		currProgress = 0;
+	}
+	draw();
+	lastRender = timestamp;
+	window.requestAnimationFrame(loop);
+}
+
+// Declaração de variáveis
+var canvas        = document.getElementById("mainCanvas");
+var ctx           = canvas.getContext("2d");
+var teclaEsquerda = false;
+var teclaDireita  = false;
+var teclaEspaco   = false;
+var win           = false;
+var lose          = false;
+var phase         =   1;
+var lastRender    =   0;
+var animShift     = 500;
+var animFrame     =   0;
+var currProgress  =  20;
+var scale         =   3;
+var wallA         =  20;
+var wallB         = Math.round(canvas.getBoundingClientRect().right / scale) - 20;
+var limitY        = Math.round(canvas.getBoundingClientRect().down  / scale) - 20;
+var cooldown      = 500;
+var cooldownCount =   0;
+var projectiles   =  [];
+var date;
+var player;
+var invaders;
+
+document.addEventListener('keydown', function(event)
+{
+	if (event.keyCode == 32)
+		teclaEspaco   = true;
+	if (event.keyCode == 37)
+		teclaEsquerda = true;
+	if (event.keyCode == 39)
+		teclaDireita  = true;
+	if (event.keyCode == 65) // debug: pressione 'A' para ganhar
+		win = true;
+});
+
+document.addEventListener('keyup', function(event)
+{
+	if (event.keyCode == 32)
+		teclaEspaco   = false;
+	if (event.keyCode == 37)
+		teclaEsquerda = false;
+	if (event.keyCode == 39)
+		teclaDireita  = false;
+});
+
+// Função principal
+function main()
+{
+	date              = new Date();
+	player            = new Player();
+	invaders          = new InvaderGrid(phase);
+	invaderSprite     = new Image();
+	shieldSprite      = new Image();
+	playerSprite      = new Image();
+	invaderSprite.src = "invaders.png";
+	shieldSprite.src  = "shield.png";
+	playerSprite.src  = "player.png";
+	ctx.scale(scale, scale);
+	player.enableMovement();
+	window.requestAnimationFrame(loop)
+	return 0;
+}
+
+main();
+
+	</script>
+</body>
+
