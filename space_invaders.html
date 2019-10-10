@@ -23,7 +23,7 @@ class InvaderGrid
 		this.w       =  16;
 		this.h       =   8;
 		this.pad     =   8;
-		this.vSpeed  =   2;
+		this.vSpeed  =   20;
 		this.rows    =   6;
 		this.cols    =   8;
 		this.dir     =   1;
@@ -45,6 +45,11 @@ class InvaderGrid
 			default:
 				this.createInvaderRow(this.rows, 0);
 		}
+	}
+
+	getLowestY()
+	{
+		return this.invader[this.invader.length - 1].getY();
 	}
 
 	move()
@@ -159,6 +164,11 @@ class Invader
 		this.y += speed;
 	}
 
+	getY()
+	{
+		return this.y + this.h;
+	}
+
 	set(lv, x, y)
 	{
 		this.x      = x;
@@ -262,6 +272,11 @@ class Player
 		this.speed   =   2;
 	}
 
+	getY()
+	{
+		return this.y;
+	}
+
 	disableMovement()
 	{
 		this.canMove = false;
@@ -330,6 +345,8 @@ function update(progress)
 			else
 				projectiles[i].move();
 		}
+		if (invaders.getLowestY() > player.getY())
+			lose = true;
 	}
 }
 
@@ -358,7 +375,7 @@ function draw()
 			ctx.fillRect(projectiles[i].getX(), projectiles[i].getY(), projectiles[i].getW(), projectiles[i].getH());
 		}
 	}
-	else if (win)
+	else
 	{
 		// Fundo
 		ctx.fillStyle = "gray";
@@ -368,7 +385,10 @@ function draw()
 		ctx.font = "24px Arial";
 		ctx.textAlign = "center";
 		ctx.fillStyle = animFrame ? "red" : "purple";
-		ctx.fillText("Você venceu!", canvas.width / (scale * 2), canvas.height / (scale * 2));
+		if (win)
+			ctx.fillText("Você venceu!", canvas.width / (scale * 2), canvas.height / (scale * 2));
+		else
+			ctx.fillText("Fim de jogo!", canvas.width / (scale * 2), canvas.height / (scale * 2));
 	}
 }
 
