@@ -1,1 +1,2 @@
-# dcc138-2019-1-trb1-yaleksander
+# Trabalho 01: Space Invaders
+# Aleksander Yacovenco
